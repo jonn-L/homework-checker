@@ -58,11 +58,11 @@ except FileNotFoundError:
 except Exception as e:
     print(f"An error occurred: {e}")
 
-# print(problem_name)
-# print(source_files)
-# print(inputs)
-# print(expected_outputs)
-# print(char_limit)
+print(problem_name)
+print(source_files)
+print(inputs)
+print(expected_outputs)
+print(char_limit)
 
 students = os.listdir(problem_name)
 print(len(students))
@@ -89,13 +89,13 @@ for student in students:
         student_compilation_error[full_path] = result.stderr
         continue
     
-    # for input in inputs:    
-    #     ### run the code with the test case input
-    #     run_command = [f'./{path_to_student}/run']
-    #     output = subprocess.run(run_command,input=input, 
-    #                             stdout=subprocess.PIPE, text=True).stdout
-    #     full_path = os.path.join(path_to_student, source_files[0])
-    #     student_output[full_path].append(output)
+    for input in inputs:    
+        ### run the code with the test case input
+        run_command = [f'./{path_to_student}/run']
+        output = subprocess.run(run_command,input=input, 
+                                stdout=subprocess.PIPE, text=True).stdout
+        full_path = os.path.join(path_to_student, source_files[0])
+        student_output[full_path].append(output)
 
     header = False
     for path in source_files_paths:
@@ -158,23 +158,29 @@ try:
         file.write('\n---\n')
         
         ### compare the student's outputs with the expected outputs
-        # file.write('### STUDENTS WHO DID NOT PASS TEST CASES:\n\n')
-        # for student, outputs in student_output.items():
+        file.write('### STUDENTS OUTPUTS:\n')
+        counter = 1
+        for path_to_student, outputs in student_output.items():
+            parts = path_to_student.split('/')
+            student = parts[1]
+            file.write(f'- [{student}]({path_to_student})\n')
             
-        #     for output, expected_output in zip(outputs, expected_outputs):
-        #         print(output)
-        #         print(expected_output)
-        #         if expected_output in output:
-        #             print('passed')
-                
+            file.write('```\n')
+            file.write('Input:\n')
+            file.write(str(inputs) + '\n\n')
+            file.write('Expected output:\n')
+            file.write(str(expected_outputs) + '\n\n')
+            file.write('Output:\n')
+            file.write(str(outputs) + '\n\n')
+            file.write('```\n')
 
-        #     # for comparison_result in comparisons_result:
-        #     #     if comparison_result == False:
-        #     #         file.write(f'{student}\n')
-        #     #         file.writelines(expected_outputs)
-        #     #         file.write('\n')
-        #     #         file.writelines(output)
-        #     #         file.write('\n') 
+            # for comparison_result in comparisons_result:
+            #     if comparison_result == False:
+            #         file.write(f'{student}\n')
+            #         file.writelines(expected_outputs)
+            #         file.write('\n')
+            #         file.writelines(output)
+            #         file.write('\n') 
 
 except FileNotFoundError:
     print(f"File '{file}' not found.")
