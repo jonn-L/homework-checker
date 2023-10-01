@@ -1,31 +1,20 @@
 import subprocess
 import os
 from collections import defaultdict
-# import re
 
-###############################################################################
-
-'''
-    PROBLEM_NUMBER: name of the folder with student solutions
-    SOURCE_FILE(S): name of the file(s) to be compiled seperated by spaces
-    TEST_CASES: list of input test cases
-    EXPECTED_OUTPUTS: list of expected outputs to those test cases
-'''
-
-problem_number = 'temp'
+problem_name = 'temp'
 source_files = []
-test_cases = []
+inputs = []
 expected_outputs = []
-
-###############################################################################
+char_limit = 80
 
 try:
     with open('settings.txt', 'r') as file:
         for line in file:
             if line == 'PROBLEM NAME:\n':
-                problem_number = file.readline().strip()
+                problem_name = file.readline().strip()
             
-            if line == "SOURCE FILE(S):\n":
+            if line == 'SOURCE FILE(S):\n':
                 while True:
                     source_file = file.readline()
                     if (len(source_file) == 80):
@@ -35,21 +24,20 @@ try:
                     else:
                         source_files.append(source_file.strip())
 
-            if line == "TEST CASES:\n":
-                test_case = ''
+            if line == 'INPUTS:\n':
+                input = ''
                 while True:
                     reader = file.readline()
-                    if (len(source_file) == 80):
-                        test_cases.append(test_case)
+                    if (reader[0] == '='):
+                        inputs.append(input)
                         break
                     elif (reader == '\n'):
-                        test_cases.append(test_case)
-                        test_case = ''
+                        inputs.append(input)
+                        input = ''
                     else:
-                        test_case += reader
+                        input += reader  
                     
-            
-            if line == "EXPECTED OUTPUTS:\n":
+            if line == 'EXPECTED OUTPUTS:\n':
                 expected_output = ''
                 while True:
                     reader = file.readline()
@@ -60,48 +48,54 @@ try:
                         expected_outputs.append(expected_output)
                         expected_output = ''
                     else:
-                        expected_output += reader               
+                        expected_output += reader   
+
+            if line == 'CHAR LIMIT:\n':
+                char_limit = int(file.readline())            
 
 except FileNotFoundError:
     print(f"File '{file}' not found.")
 except Exception as e:
     print(f"An error occurred: {e}")
 
-print(expected_outputs)
+# print(problem_name)
+# print(source_files)
+# print(inputs)
+# print(expected_outputs)
+# print(char_limit)
 
-students = os.listdir(problem_number)
+students = os.listdir(problem_name)
+print(len(students))
 
-student_compilation_error = set()
+student_compilation_error = defaultdict()
 student_header_comment_missing = set()
 student_over_char_limit = set()
 student_output = defaultdict(list)
 
 for student in students:
-    if student == 'gmarcano01':
-        continue
     ### get paths for the source files
-    path_to_student = f'{problem_number}/{student}/'
+    path_to_student = f'{problem_name}/{student}'
     print(path_to_student)
-    source_files_paths = [path_to_student + file for file in source_files]
+    source_files_paths = [path_to_student + f'/{file}' for file in source_files]
 
     ### compile the code
-    compile_command = ['gcc'] + source_files_paths + ['-o', f'{path_to_student}run']
+    compile_command = ['gcc'] + source_files_paths + ['-o', f'{path_to_student}/run']
     result = subprocess.run(compile_command, stdout=subprocess.PIPE, 
                             stderr=subprocess.PIPE, text=True)
     
     ### check if code failed to compile compile
     if result.returncode != 0:
-        print(f"Compilation failed. Error output:\n{result.stderr}")
-        student_compilation_error.add(
-            f'Projects/Homework_Checker/{path_to_student}{source_files[0]}')
+        full_path = os.path.join(path_to_student, source_files[0])
+        student_compilation_error[full_path] = result.stderr
         continue
     
-    for input in test_cases:    
-        ### run the code with the test case input
-        run_command = [f'./{path_to_student}run']
-        output = subprocess.run(run_command,input=input, 
-                                stdout=subprocess.PIPE, text=True).stdout
-        student_output[path_to_student].append(output)
+    # for input in inputs:    
+    #     ### run the code with the test case input
+    #     run_command = [f'./{path_to_student}/run']
+    #     output = subprocess.run(run_command,input=input, 
+    #                             stdout=subprocess.PIPE, text=True).stdout
+    #     full_path = os.path.join(path_to_student, source_files[0])
+    #     student_output[full_path].append(output)
 
     header = False
     for path in source_files_paths:
@@ -110,15 +104,21 @@ for student in students:
 
                 ### check for header comment
                 code = file.read()
-                index = code.find('CH-230-A')
-                if index != -1:
+                if 'CH-230-A' in code:
                     header = True
+                else:
+                    if student[1:] in code.lower():
+                        header = True
 
                 ### check for 80 characters per line limit
+                if not char_limit:
+                    continue
                 for line in file:
-                    if len(line) > 80:
-                        student_over_char_limit.add(path_to_student)
+                    if len(line) > char_limit:
+                        full_path = os.path.join(path_to_student, source_files[0])
+                        student_over_char_limit.add(full_path)
                         break
+
         except FileNotFoundError:
             print(f"File '{path}' not found.")
         except Exception as e:
@@ -126,64 +126,55 @@ for student in students:
             print(f"An error occurred: {e}")
 
     if header == False:
-        student_header_comment_missing.add(path_to_student)
+        full_path = os.path.join(path_to_student, source_files[0])
+        student_header_comment_missing.add(full_path)
 
 
 try:
-    with open('results.txt', 'w') as file:
-        for i in range(80):
-            file.write('=')
-        file.write('\n')
+    with open('results.md', 'w') as file:
+        file.write('### STUDENTS WITH COMPILATION ERRORS:\n')
+        for path_to_student in student_compilation_error:
+            parts = path_to_student.split('/')
+            student = parts[1]
+            file.write(f'- [{student}]({path_to_student})\n')
 
-        file.write('STUDENTS WITH COMPILATION ERRORS:\n\n')
-        for student in student_compilation_error:
-            full_path = f'file://home/jlumi/Projects/Homework_Checker/{student}{source_files[0]}'
-            file.write(f'{full_path}\n')
+        file.write('\n---\n')
 
-        file.write('\n')
-        for i in range(80):
-            file.write('=')
-        file.write('\n')
+        file.write('### STUDENTS WITH MISSING COMMENT HEADER:\n')
+        for path_to_student in student_header_comment_missing:
+            parts = path_to_student.split('/')
+            student = parts[1]
+            file.write(f'- [{student}]({path_to_student})\n')
 
-        file.write('STUDENTS WITH MISSING COMMENT HEADER:\n\n')
-        for student in student_header_comment_missing:
-            full_path = f'file://home/jlumi/Projects/Homework_Checker/{student}{source_files[0]}'
-            file.write(f'{full_path}\n')
-
-        file.write('\n')
-        for i in range(80):
-            file.write('=')
-        file.write('\n')
+        file.write('\n---\n')
         
-        file.writelines('STUDENTS OVER 80 CHARACTERS PER LINE:\n\n')
-        for student in student_over_char_limit:
-            full_path = f'file://home/jlumi/Projects/Homework_Checker/{student}{source_files[0]}'
-            file.write(f'{full_path}\n')
+        if (char_limit):
+            file.writelines(f'### STUDENTS OVER {char_limit} CHARACTERS PER LINE:\n')
+            for path_to_student in student_over_char_limit:
+                parts = path_to_student.split('/')
+                student = parts[1]
+                file.write(f'- [{student}]({path_to_student})\n')
 
-        file.write('\n')
-        for i in range(80):
-            file.write('=')
-        file.write('\n')    
+        file.write('\n---\n')
         
         ### compare the student's outputs with the expected outputs
-        file.write('STUDENTS WHO DID NOT PASS TEST CASES:\n\n')
-        for student, output in student_output.items():
-            print(output)
-            comparisons_result = [i == j 
-                                  for i, j in zip(expected_outputs, output)]
+        # file.write('### STUDENTS WHO DID NOT PASS TEST CASES:\n\n')
+        # for student, outputs in student_output.items():
+            
+        #     for output, expected_output in zip(outputs, expected_outputs):
+        #         print(output)
+        #         print(expected_output)
+        #         if expected_output in output:
+        #             print('passed')
+                
 
-            for comparison_result in comparisons_result:
-                if comparison_result == False:
-                    full_path = f'file://home/jlumi/Projects/Homework_Checker/{student}{source_files[0]}'
-                    file.write(f'{full_path}\n')
-                    file.writelines(expected_outputs)
-                    file.write('\n')
-                    file.writelines(output)
-                    file.write('\n')
-
-        for i in range(80):
-            file.write('=')
-        file.write('\n')  
+        #     # for comparison_result in comparisons_result:
+        #     #     if comparison_result == False:
+        #     #         file.write(f'{student}\n')
+        #     #         file.writelines(expected_outputs)
+        #     #         file.write('\n')
+        #     #         file.writelines(output)
+        #     #         file.write('\n') 
 
 except FileNotFoundError:
     print(f"File '{file}' not found.")
