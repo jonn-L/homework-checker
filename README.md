@@ -48,3 +48,4 @@ After setting this up, running the main.py file will write a 'results.txt' listi
 
 - Detect the presence of code comments
 - Run the C/C++ code in a seperate virtual environment
+- Detect plagiarism
