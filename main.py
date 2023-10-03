@@ -70,9 +70,12 @@ print(len(students))
 student_compilation_error = defaultdict()
 student_header_comment_missing = set()
 student_over_char_limit = set()
-student_output = defaultdict(list)
+student_outputs = defaultdict(list)
 
 for student in students:
+    if student == 'azinovev':
+        continue
+
     ### get paths for the source files
     path_to_student = f'{problem_name}/{student}'
     print(path_to_student)
@@ -95,7 +98,7 @@ for student in students:
         output = subprocess.run(run_command,input=input, 
                                 stdout=subprocess.PIPE, text=True).stdout
         full_path = os.path.join(path_to_student, source_files[0])
-        student_output[full_path].append(output)
+        student_outputs[full_path].append(output)
 
     header = False
     for path in source_files_paths:
@@ -111,8 +114,9 @@ for student in students:
                         header = True
 
                 ### check for 80 characters per line limit
-                if not char_limit:
+                if char_limit <= 0:
                     continue
+
                 for line in file:
                     if len(line) > char_limit:
                         full_path = os.path.join(path_to_student, source_files[0])
@@ -159,28 +163,20 @@ try:
         
         ### compare the student's outputs with the expected outputs
         file.write('### STUDENTS OUTPUTS:\n')
-        counter = 1
-        for path_to_student, outputs in student_output.items():
-            parts = path_to_student.split('/')
-            student = parts[1]
+        for path_to_student, outputs in student_outputs.items():
+            path_parts = path_to_student.split('/')
+            student = path_parts[1]
             file.write(f'- [{student}]({path_to_student})\n')
             
             file.write('```\n')
-            file.write('Input:\n')
-            file.write(str(inputs) + '\n\n')
-            file.write('Expected output:\n')
-            file.write(str(expected_outputs) + '\n\n')
-            file.write('Output:\n')
-            file.write(str(outputs) + '\n\n')
+            for expected_output, output in zip(expected_outputs, outputs):
+                output_lines = output.split('\n')
+                expected_output_lines = expected_output.split('\n')
+                
+                for output_line, expected_output_line in zip(output_lines, expected_output_lines):
+                    file.write(f'{output_line:<25}')
+                    file.write(f'\t{expected_output_line:<25}\n')
             file.write('```\n')
-
-            # for comparison_result in comparisons_result:
-            #     if comparison_result == False:
-            #         file.write(f'{student}\n')
-            #         file.writelines(expected_outputs)
-            #         file.write('\n')
-            #         file.writelines(output)
-            #         file.write('\n') 
 
 except FileNotFoundError:
     print(f"File '{file}' not found.")
