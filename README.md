@@ -13,6 +13,7 @@ In 'settings.txt', parameters are set by typing them under each of the settings.
 - Source file(s): the file or list of files to be compiled.
 - Test cases: input test cases seperated by newlines.
 - Expected outputs: expected output to those test cases also seperated by newlines.
+- Char limit: the character limit per line
 
 Here is an example:
 ```
@@ -28,18 +29,20 @@ file3.h
 TEST CASES:
 input1
 input1
-
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 input2
 input2
 ===============================================================================
 EXPECTED OUTPUTS:
 output1
 output1
-
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 output2
 output2
 ===============================================================================
-
+CHAR LIMIT:
+number
+===============================================================================
 ```
 
 After setting this up, running the main.py file will write a 'results.txt' listing the students that did not meet the criteria mentioned before.
